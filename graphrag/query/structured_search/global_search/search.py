@@ -9,6 +9,7 @@ import logging
 import time
 from dataclasses import dataclass
 from typing import Any
+import re
 
 import pandas as pd
 import tiktoken
@@ -229,14 +230,18 @@ class GlobalSearch(BaseSearch):
         list[dict[str, Any]]
             A list of key points, each key point is a dictionary with "answer" and "score" keys
         """
-        parsed_elements = json.loads(search_response)["points"]
-        return [
-            {
-                "answer": element["description"],
-                "score": int(element["score"]),
-            }
-            for element in parsed_elements
-        ]
+        pattern = r'```json\s*([\s\S]*?)\s*```'
+        match = re.search(pattern, search_response)
+        if match:
+            json_str = match.group(1)
+            parsed_elements = json.loads(json_str)["points"]
+            return [
+                {
+                    "answer": element["description"],
+                    "score": int(element["score"]),
+                }
+                for element in parsed_elements
+            ]
 
     async def _reduce_response(
         self,
